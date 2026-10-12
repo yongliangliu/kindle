@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="zh-CN"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>天气</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#fff;color:#000;font-family:sans-serif}
+main{max-width:600px;margin:0 auto;padding:18px 30px 16px}
+header{display:flex;justify-content:space-between;align-items:center;font-size:18px}
+.mark{border:2px solid #000;padding:4px 12px;font-weight:bold;letter-spacing:4px}
+.small{font-size:14px}.clock{text-align:center;margin:14px 0 18px}
+#time{font-size:114px;font-weight:bold;line-height:1.1;letter-spacing:-5px;font-family:monospace}
+#date{font-size:20px;margin-top:8px}.rule{border-top:3px solid #000}
+.month-head{display:flex;justify-content:space-between;align-items:center;margin:16px 0 10px}
+#month{font-size:22px;font-weight:bold}.calendar{width:100%;border-collapse:collapse;table-layout:fixed;text-align:center}
+th{font-size:15px;font-weight:normal;height:26px;border-bottom:1px solid #999}
+td{height:34px;font-size:21px}td span{display:inline-block;min-width:32px;height:32px;line-height:32px}
+td.today span{background:#000;color:#fff;border-radius:50%;font-weight:bold}
+.quote{border-top:1px solid #000;margin-top:16px;padding-top:16px;font-size:18px;line-height:1.6}
+.author{font-size:14px;margin-top:6px;text-align:right}
+footer{display:flex;justify-content:space-between;align-items:center;border-top:1px solid #000;margin-top:12px;padding-top:12px}
+button{border:2px solid #000;background:white;color:black;font:16px sans-serif;padding:8px 17px;border-radius:0}
+
+
+#url-keys{margin:12px -6px}#url-keys .keyrow{display:flex;margin:5px 0}#url-keys button{flex:1;min-width:0;padding:10px 0;margin:0 2px;font-size:20px}body.browsing .clock,body.browsing .rule,body.browsing .calendar-wrap,body.browsing .quote,body.browsing footer{display:none}
+
+body{font-size:20px;font-weight:600;color:#000;background:#fff}button,input{font-weight:600!important}#scenes{display:flex;margin:16px 0 12px}#scenes a{flex:1;display:block;text-align:center;border:2px solid #000;color:#000;padding:12px 3px;margin-right:6px;font-size:19px;text-decoration:none}#scenes a:last-child{margin-right:0}.small{font-size:17px}#date{font-size:23px;font-weight:600}th{font-size:18px;font-weight:600}td{font-size:24px;font-weight:600}.quote{display:none}footer{margin-top:18px}body.browsing #scenes{display:none}#url-keys button{font-weight:600}#time{letter-spacing:-2px}
+
+main{padding:14px 26px}#time{font-size:108px}.clock{margin:12px 0}td{height:32px}
+#trend{border-top:2px solid #000;margin-top:8px;padding-top:8px}#trend-chart{display:block;width:100%;height:176px}#trend-note{font-size:13px;font-weight:normal;margin-top:1px}#trend-note:empty{display:none}.calendar-wrap{border-top:3px solid #000;margin-top:12px;padding-top:8px}body.browsing #trend{display:none}
+header,#browser-panel{display:none!important}
+</style></head>
+<body><main>
+<header><span class="mark">今日</span><button id="show-browser" type="button">打开网址</button></header>
+<section id="browser-panel" style="display:none;border-bottom:2px solid black;padding:16px 0">
+<form id="browser-form"><label for="url">输入网址</label><input id="url" type="text" placeholder="https://example.com" style="display:block;width:100%;font-size:20px;padding:10px;margin:10px 0" autocapitalize="off" autocorrect="off"><button type="submit">访问网页</button> <button id="example" type="button">测试网页</button></form><div id="url-keys" aria-label="网址键盘"></div>
+<p style="font-size:15px;line-height:1.5;margin-bottom:0">按左上角返回可回到入口书。部分现代网站可能不支持此设备。</p><p id="url-error" role="status"></p><p style="font-size:14px">天气来源：<a href="https://open-meteo.com/" style="color:black">Open-Meteo</a></p></section>
+<section class="clock"><div id="time">--:--</div><div id="date"></div></section>
+<section id="trend" aria-label="昨天今天明天的逐小时气温趋势"><svg id="trend-chart" viewBox="0 0 540 176" role="img" aria-label="昨天今天明天每小时气温折线图"></svg><div id="trend-note">逐小时温度数据加载中</div></section>
+<section class="calendar-wrap">
+<table class="calendar"><thead><tr><th>一</th><th>二</th><th>三</th><th>四</th><th>五</th><th>六</th><th>日</th></tr></thead><tbody id="days"></tbody></table>
+</section>
+<section class="quote">读书不觉已春深，<br>一寸光阴一寸金。<div class="author">王贞白《白鹿洞二首·其一》</div></section>
+
+</main><script>
+(function(){
+var lastDay='',offset=0,week=['星期日','星期一','星期二','星期三','星期四','星期五','星期六'];
+function pad(n){return n<10?'0'+n:''+n}
+function text(id,s){var el=document.getElementById(id);if(el.textContent!==s)el.textContent=s}
+function render(){
+ var d=new Date(Date.now()+weatherOffset),y=d.getUTCFullYear(),m=d.getUTCMonth(),day=d.getUTCDate();
+ text('time',pad(d.getUTCHours())+':'+pad(d.getUTCMinutes()));
+ text('date',y+'年'+(m+1)+'月'+day+'日　'+week[d.getUTCDay()]);
+ var key=y+'-'+m+'-'+day;if(key===lastDay)return;lastDay=key;
+ var first=(new Date(Date.UTC(y,m,1)).getUTCDay()+6)%7,count=new Date(Date.UTC(y,m+1,0)).getUTCDate(),rows=Math.ceil((first+count)/7),html='';
+ for(var r=0;r<rows;r++){html+='<tr>';for(var c=0;c<7;c++){var n=r*7+c-first+1;html+='<td'+(n===day?' class="today"':'')+'><span>'+(n>0&&n<=count?n:'')+'</span></td>'}html+='</tr>'}
+ document.getElementById('days').innerHTML=html;
+}
+document.getElementById('show-browser').onclick=function(){var p=document.getElementById('browser-panel');var open=p.style.display==='none';p.style.display=open?'block':'none';document.body.className=open?'browsing':''};
+document.getElementById('browser-form').onsubmit=function(e){e.preventDefault();var u=document.getElementById('url').value.replace(/^\s+|\s+$/g,'');if(!u)return;if(!/^[a-z][a-z0-9+.-]*:/i.test(u))u='https://'+u;if(!/^https?:\/\//i.test(u)){document.getElementById('url-error').textContent='请输入 http 或 https 网址';return}window.location.href=u};
+var keybox=document.getElementById('url-keys');
+var rows=['1234567890','qwertyuiop','asdfghjkl','zxcvbnm'];
+rows.push(['.', '/', '-', '_', ':', '?', '=', '&']);rows.push(['https://','www.','.com','.cn','删除','清空']);
+for(var ri=0;ri<rows.length;ri++){var row=document.createElement('div');row.className='keyrow';for(var ki=0;ki<rows[ri].length;ki++){var b=document.createElement('button');b.type='button';b.textContent=rows[ri][ki];b.onclick=function(){var input=document.getElementById('url'),v=this.textContent;if(v==='清空')input.value='';else if(v==='删除')input.value=input.value.slice(0,-1);else input.value+=v;document.getElementById('url-error').textContent=''};row.appendChild(b)}keybox.appendChild(row)}
+document.getElementById('example').onclick=function(){window.location.href='https://example.com/'};
+var lastWeather=null,weatherOffset=28800000;
+function condition(c){if(c===0)return '晴';if(c<=3)return '多云';if(c===45||c===48)return '雾';if(c>=51&&c<=57)return '毛毛雨';if(c>=61&&c<=67)return '雨';if(c>=71&&c<=77)return '雪';if(c>=80&&c<=82)return '阵雨';if(c===85||c===86)return '阵雪';if(c>=95)return '雷雨';return '天气'}
+function paintTrend(data,failed){
+ var h=data.hourly,c=data.current;if(!h||!h.time||!h.temperature_2m||h.time.length!==h.temperature_2m.length){text('trend-note','趋势数据待更新');return}
+ var today=c.time.substring(0,10),bits=today.split('-'),base=Date.UTC(+bits[0],+bits[1]-1,+bits[2]);
+ var dateKey=function(ms){var d=new Date(ms);return d.getUTCFullYear()+'-'+pad(d.getUTCMonth()+1)+'-'+pad(d.getUTCDate())};
+ var days=[dateKey(base-86400000),today,dateKey(base+86400000)],series=[],hour=+c.time.substring(11,13),i,t,v,dayIndex;
+ for(i=0;i<h.time.length;i++){t=h.time[i];v=h.temperature_2m[i];dayIndex=days.indexOf(t.substring(0,10));if(dayIndex>=0&&typeof v==='number'&&isFinite(v))series.push({pos:dayIndex*24+(+t.substring(11,13)),temp:v})}
+ if(series.length<65){text('trend-note','趋势数据待更新');return}
+ series.sort(function(a,b){return a.pos-b.pos});
+ var values=series.map(function(p){return p.temp});values.push(c.temperature_2m);var lo=Math.floor(Math.min.apply(null,values)),hi=Math.ceil(Math.max.apply(null,values));if(hi<=lo)hi=lo+1;
+ var x=function(p){return 20+p.pos*500/71},y=function(p){return 126-(p.temp-lo)*90/(hi-lo)};
+ var points=function(list){return list.map(function(p){return x(p).toFixed(1)+','+y(p).toFixed(1)}).join(' ')};
+ var past=series.filter(function(p){return p.pos<=24+hour}),future=series.filter(function(p){return p.pos>=24+hour});
+ var s='<line x1="20" y1="126" x2="520" y2="126" stroke="#777"/>';
+ [24,48].forEach(function(n){var gx=x({pos:n});s+='<line x1="'+gx+'" y1="36" x2="'+gx+'" y2="126" stroke="#bbb" stroke-dasharray="3 5"/>'});
+ s+='<polyline fill="none" stroke="#000" stroke-width="4" points="'+points(past)+'"/>';
+ s+='<polyline fill="none" stroke="#000" stroke-width="3" stroke-dasharray="7 5" points="'+points(future)+'"/>';
+ var peak=series[0],trough=series[0];
+ series.forEach(function(p){if(p.temp>peak.temp)peak=p;if(p.temp<trough.temp)trough=p});
+ var extremes=[];
+ [{point:peak,above:true,id:'trend-high-number'},{point:trough,above:false,id:'trend-low-number'}].forEach(function(mark){
+  var px=x(mark.point),py=y(mark.point),tx=Math.max(37,Math.min(503,px)),labelY=mark.above?py-9:py+21;
+  var number=String(Math.round(mark.point.temp));
+  s+='<circle cx="'+px+'" cy="'+py+'" r="4" fill="#000"/><text id="'+mark.id+'" x="'+tx+'" y="'+labelY+'" text-anchor="middle" font-size="15" font-weight="bold" fill="#000">'+number+'</text>';
+  extremes.push({id:mark.id,x:tx,y:labelY,number:number});
+ });
+ var minute=+c.time.substring(14,16),marker={pos:24+hour+minute/60,temp:c.temperature_2m};
+ var mx=x(marker),my=y(marker),label=condition(c.weather_code)+' '+Math.round(c.temperature_2m)+'°';
+ var labelX=mx>390?mx-9:mx+9,anchor=mx>390?'end':'start',labelY=my<48?my+23:my-10;
+ s+='<circle cx="'+mx+'" cy="'+my+'" r="5" fill="#000"/><text x="'+labelX+'" y="'+labelY+'" text-anchor="'+anchor+'" font-size="18" font-weight="bold" fill="#000">'+label+'</text>';
+ [{pos:0,label:'昨 00'},{pos:24,label:'今 00'},{pos:48,label:'明 00'},{pos:71,label:'明 23'}].forEach(function(tick){var px=x(tick),anchor=tick.pos===0?'start':tick.pos===71?'end':'middle';s+='<line x1="'+px+'" y1="126" x2="'+px+'" y2="131" stroke="#777"/><text x="'+px+'" y="168" text-anchor="'+anchor+'" font-size="15" fill="#000">'+tick.label+'</text>'});
+ var chart=document.getElementById('trend-chart');chart.innerHTML=s;
+ extremes.forEach(function(mark){
+  var number=document.getElementById(mark.id),width=0;
+  try{width=number.getComputedTextLength()}catch(e){}
+  if(!width)width=mark.number.length*8;
+  var degree=document.createElementNS('http://www.w3.org/2000/svg','text');
+  degree.setAttribute('x',(mark.x+width/2+1).toFixed(1));degree.setAttribute('y',mark.y);
+  degree.setAttribute('font-size','15');degree.setAttribute('font-weight','bold');degree.setAttribute('fill','#000');
+  degree.textContent='°';chart.appendChild(degree);
+ });
+ text('trend-note',failed?'缓存数据':'');
+}
+function paintWeather(data,failed){var c=data.current;if(!c||typeof c.temperature_2m!=='number')throw Error('Invalid weather');if(typeof data.utc_offset_seconds==='number')weatherOffset=data.utc_offset_seconds*1000;paintTrend(data,failed);render()}
+window.applyNativeWeather=function(raw){try{var data=JSON.parse(raw);paintWeather(data,false);lastWeather=data;try{localStorage.setItem('kindle-weather-v2',raw)}catch(e){}}catch(e){weatherFail()}};
+function weatherFail(){if(lastWeather){try{paintWeather(lastWeather,true)}catch(e){}}else{text('trend-note','天气暂不可用，请检查 Wi-Fi')}}
+window.nativeWeatherFailed=weatherFail;
+try{var cached=localStorage.getItem('kindle-weather-v2');if(cached){lastWeather=JSON.parse(cached);paintWeather(lastWeather,true)}}catch(e){}
+render();setInterval(render,10000);
+})();
+</script></body></html>

@@ -1,0 +1,12 @@
+.DS_Store
+.local/
+dist/
+**/build/
+*.apk
+*.aab
+*.keystore
+*.jks
+*.pem.key
+*.img
+*.bin
+*.log

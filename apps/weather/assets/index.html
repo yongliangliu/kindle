@@ -27,7 +27,7 @@ button{border:2px solid #000;background:white;color:black;font:16px sans-serif;p
 body{font-size:20px;font-weight:600;color:#000;background:#fff}button,input{font-weight:600!important}#scenes{display:flex;margin:16px 0 12px}#scenes a{flex:1;display:block;text-align:center;border:2px solid #000;color:#000;padding:12px 3px;margin-right:6px;font-size:19px;text-decoration:none}#scenes a:last-child{margin-right:0}.small{font-size:17px}#date{font-size:23px;font-weight:600}th{font-size:18px;font-weight:600}td{font-size:24px;font-weight:600}.quote{display:none}footer{margin-top:18px}body.browsing #scenes{display:none}#url-keys button{font-weight:600}#time{letter-spacing:-2px}
 
 main{padding:14px 26px}#time{font-size:108px}.clock{margin:12px 0}td{height:32px}
-#trend{border-top:2px solid #000;margin-top:8px;padding-top:8px}#trend-chart{display:block;width:100%;height:176px}#trend-note{font-size:13px;font-weight:normal;margin-top:1px}#trend-note:empty{display:none}.calendar-wrap{border-top:3px solid #000;margin-top:12px;padding-top:8px}body.browsing #trend{display:none}
+#trend{border-top:2px solid #000;margin-top:8px;padding-top:4px}#trend-chart{display:block;width:100%;height:156px}#trend-note{font-size:13px;font-weight:normal;margin-top:1px}#trend-note:empty{display:none}.calendar-wrap{border-top:3px solid #000;margin-top:6px;padding-top:6px}body.browsing #trend{display:none}
 header,#browser-panel{display:none!important}
 </style></head>
 <body><main>
@@ -36,7 +36,7 @@ header,#browser-panel{display:none!important}
 <form id="browser-form"><label for="url">输入网址</label><input id="url" type="text" placeholder="https://example.com" style="display:block;width:100%;font-size:20px;padding:10px;margin:10px 0" autocapitalize="off" autocorrect="off"><button type="submit">访问网页</button> <button id="example" type="button">测试网页</button></form><div id="url-keys" aria-label="网址键盘"></div>
 <p style="font-size:15px;line-height:1.5;margin-bottom:0">按左上角返回可回到入口书。部分现代网站可能不支持此设备。</p><p id="url-error" role="status"></p><p style="font-size:14px">天气来源：<a href="https://open-meteo.com/" style="color:black">Open-Meteo</a></p></section>
 <section class="clock"><div id="time">--:--</div><div id="date"></div></section>
-<section id="trend" aria-label="昨天今天明天的逐小时气温趋势"><svg id="trend-chart" viewBox="0 0 540 176" role="img" aria-label="昨天今天明天每小时气温折线图"></svg><div id="trend-note">逐小时温度数据加载中</div></section>
+<section id="trend" aria-label="昨天今天明天的逐小时气温趋势"><svg id="trend-chart" viewBox="0 0 540 156" role="img" aria-label="昨天今天明天每小时气温折线图"></svg><div id="trend-note">逐小时温度数据加载中</div></section>
 <section class="calendar-wrap">
 <table class="calendar"><thead><tr><th>一</th><th>二</th><th>三</th><th>四</th><th>五</th><th>六</th><th>日</th></tr></thead><tbody id="days"></tbody></table>
 </section>
@@ -77,7 +77,7 @@ function paintTrend(data,failed){
  var x=function(p){return 20+p.pos*500/71},y=function(p){return 126-(p.temp-lo)*90/(hi-lo)};
  var points=function(list){return list.map(function(p){return x(p).toFixed(1)+','+y(p).toFixed(1)}).join(' ')};
  var past=series.filter(function(p){return p.pos<=24+hour}),future=series.filter(function(p){return p.pos>=24+hour});
- var s='<line x1="20" y1="126" x2="520" y2="126" stroke="#777"/>';
+ var s='';
  [24,48].forEach(function(n){var gx=x({pos:n});s+='<line x1="'+gx+'" y1="36" x2="'+gx+'" y2="126" stroke="#bbb" stroke-dasharray="3 5"/>'});
  s+='<polyline fill="none" stroke="#000" stroke-width="4" points="'+points(past)+'"/>';
  s+='<polyline fill="none" stroke="#000" stroke-width="3" stroke-dasharray="7 5" points="'+points(future)+'"/>';
@@ -94,7 +94,6 @@ function paintTrend(data,failed){
  var mx=x(marker),my=y(marker),label=condition(c.weather_code)+' '+Math.round(c.temperature_2m)+'°';
  var labelX=mx>390?mx-9:mx+9,anchor=mx>390?'end':'start',labelY=my<48?my+23:my-10;
  s+='<circle cx="'+mx+'" cy="'+my+'" r="5" fill="#000"/><text x="'+labelX+'" y="'+labelY+'" text-anchor="'+anchor+'" font-size="18" font-weight="bold" fill="#000">'+label+'</text>';
- [{pos:0,label:'昨 00'},{pos:24,label:'今 00'},{pos:48,label:'明 00'},{pos:71,label:'明 23'}].forEach(function(tick){var px=x(tick),anchor=tick.pos===0?'start':tick.pos===71?'end':'middle';s+='<line x1="'+px+'" y1="126" x2="'+px+'" y2="131" stroke="#777"/><text x="'+px+'" y="168" text-anchor="'+anchor+'" font-size="15" fill="#000">'+tick.label+'</text>'});
  var chart=document.getElementById('trend-chart');chart.innerHTML=s;
  extremes.forEach(function(mark){
   var number=document.getElementById(mark.id),width=0;
